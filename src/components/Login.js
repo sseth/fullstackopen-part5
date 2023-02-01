@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import Notification from './Notification';
 import { blogService, loginService } from '../services';
 
@@ -60,6 +61,12 @@ const Login = ({ setUser, notif, setNotif }) => {
       </form>
     </div>
   );
+};
+
+Login.propTypes = {
+  notif: PropTypes.object.isRequired,
+  setNotif: PropTypes.func.isRequired,
+  setUser: PropTypes.func.isRequired,
 };
 
 export default Login;
