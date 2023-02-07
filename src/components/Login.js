@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import Notification from './Notification';
-import { blogService, loginService } from '../services';
 
-const Login = ({ setUser, notif, setNotif }) => {
-  const [username, setUsername] = useState('abcd1234');
-  const [password, setPassword] = useState('sdlkjf987');
+const Login = ({ notif, login }) => {
+  // const [username, setUsername] = useState('abcd1234');
+  // const [password, setPassword] = useState('sdlkjf987');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -15,29 +16,16 @@ const Login = ({ setUser, notif, setNotif }) => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
-    try {
-      const res = await loginService.logIn({ username, password });
-      setUser(res);
-      blogService.setToken(res.token);
-      localStorage.setItem('user', JSON.stringify(res));
-      setUsername('');
-      setPassword('');
-    } catch (error) {
-      console.error(error);
-      let msg = 'Login failed';
-      if (error.response.status === 401) msg += ': incorrect password';
-      else if (error.response.data.error)
-        msg += `: ${error.response.data.error}`;
-      setNotif({ msg, error: true });
-    }
+    await login({ username, password });
+    setUsername('');
+    setPassword('');
   };
 
   return (
     <div>
       <h2>log in</h2>
       <Notification notif={notif} />
-      <form>
+      <form onSubmit={handleLogin}>
         <div>
           <label htmlFor="username">username </label>
           <input
@@ -57,7 +45,7 @@ const Login = ({ setUser, notif, setNotif }) => {
             onChange={handleChange}
           />
         </div>
-        <input type="button" value="log in" onClick={handleLogin} />
+        <button type="submit" id="login">log in</button>
       </form>
     </div>
   );
@@ -65,8 +53,7 @@ const Login = ({ setUser, notif, setNotif }) => {
 
 Login.propTypes = {
   notif: PropTypes.object.isRequired,
-  setNotif: PropTypes.func.isRequired,
-  setUser: PropTypes.func.isRequired,
+  login: PropTypes.func.isRequired,
 };
 
 export default Login;

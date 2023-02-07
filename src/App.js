@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { blogService, loginService } from './services';
 import { Blog, AddNewBlog, Notification, Login, Togglable } from './components';
-import { blogService } from './services';
 
 const App = () => {
   const [blogs, setBlogs] = useState([]);
@@ -37,9 +37,77 @@ const App = () => {
   useEffect(getUserFromLocalStorage, []);
   useEffect(setNotifTimer, [notif]);
 
+  const logIn = async (credentials) => {
+    const { username, password } = credentials;
+
+    try {
+      const res = await loginService.logIn({ username, password });
+      setUser(res);
+      blogService.setToken(res.token);
+      localStorage.setItem('user', JSON.stringify(res));
+    } catch (error) {
+      console.error(error);
+      let msg = 'Login failed';
+      if (error.response.status === 401) msg += ': incorrect password';
+      else if (error.response.data.error)
+        msg += `: ${error.response.data.error}`;
+      setNotif({ msg, error: true });
+    }
+  };
+
   const logOut = () => {
     setUser(null);
     localStorage.removeItem('user');
+  };
+
+  const like = async (blog) => {
+    try {
+      await blogService.edit(blog.id, {
+        ...blog,
+        user: blog.user.id,
+        likes: blog.likes + 1,
+      });
+      const newBlogs = await blogService.getAll();
+      setBlogs(newBlogs);
+    } catch (e) {
+      console.error(e);
+      // setNotif({ msg: 'lol', error: true });
+    }
+  };
+
+  const remove = async (blog) => {
+    const conf = window.confirm(`Remove ${blog.title} by ${blog.author}?`);
+    if (!conf) return;
+
+    try {
+      await blogService.remove(blog.id);
+      setNotif({ msg: 'Deleted post', error: false });
+      const newBlogs = await blogService.getAll();
+      setBlogs(newBlogs);
+    } catch (e) {
+      console.error(e);
+      setNotif({ msg: 'Could not delete post', error: true });
+    }
+  };
+
+  const create = async (blog) => {
+    const { title, author, url } = blog;
+    if (!title) return setNotif({ msg: 'Title is required', error: true });
+    if (!url) return setNotif({ msg: 'URL is required', error: true });
+
+    try {
+      await blogService.create({ title, author, url });
+      newBlogRef.current.toggleVisibility();
+      const newBlogs = await blogService.getAll();
+      setBlogs(newBlogs);
+      setNotif({
+        msg: `New blog post '${title}'${author ? ' by ' + author : ''} added`,
+        error: false,
+      });
+    } catch (error) {
+      console.error(error);
+      setNotif({ msg: 'Could not add new blog post', error: true });
+    }
   };
 
   return user ? (
@@ -51,15 +119,11 @@ const App = () => {
         <button onClick={logOut}>log out</button>
       </div>
       <br />
-      <Togglable buttonLabel="new blog" ref={newBlogRef}>
-        <AddNewBlog
-          setBlogs={setBlogs}
-          setNotif={setNotif}
-          newBlogRef={newBlogRef}
-        />
+      <Togglable buttonLabel="create blog" ref={newBlogRef}>
+        <AddNewBlog createPost={create} />
       </Togglable>
       <br />
-      <div>
+      <div className="bloglist">
         {blogs
           .sort((a, b) => a.likes - b.likes)
           .map((blog) => (
@@ -67,14 +131,14 @@ const App = () => {
               key={blog.id}
               blog={blog}
               user={user}
-              setNotif={setNotif}
-              setBlogs={setBlogs}
+              likePost={like}
+              deletePost={remove}
             />
           ))}
       </div>
     </div>
   ) : (
-    <Login setUser={setUser} notif={notif} setNotif={setNotif} />
+    <Login login={logIn} notif={notif} />
   );
 };
 

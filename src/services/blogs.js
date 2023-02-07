@@ -40,3 +40,5 @@ const remove = async (id) => {
 
 // eslint-disable-next-line
 export default { getAll, setToken, create, edit, remove };
+// const blogService = { getAll, setToken, create, edit, remove };
+// export default blogService;
